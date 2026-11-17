@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.7.2",
-  "message": "Bổ sung xuất Excel Admin, loading và xác thực danh mục HUB từ file tổng hợp."
+  "version": "9.8.4",
+  "message": "Danh sách chiếm trọn không gian và cuộn toàn bộ popup trên điện thoại."
 }
