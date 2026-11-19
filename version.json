@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.8.4",
-  "message": "Danh sách chiếm trọn không gian và cuộn toàn bộ popup trên điện thoại."
+  "version": "9.9.8",
+  "message": "Xuất Excel chỉ gồm một sheet TỔNG HỢP MẪU, giữ đầy đủ các cột nghiệp vụ và đối soát."
 }
