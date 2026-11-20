@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.9.8",
-  "message": "Xuất Excel chỉ gồm một sheet TỔNG HỢP MẪU, giữ đầy đủ các cột nghiệp vụ và đối soát."
+  "version": "9.14.5",
+  "message": "Nhấn Enter khi nhập mật khẩu Admin và căn thẳng hàng ô username với nút lấy mẫu."
 }
