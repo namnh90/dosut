@@ -3586,9 +3586,29 @@ try{render()}catch(e){
 <script>
 (function(){
  'use strict';
- const CURRENT_HUB_VERSION='9.15.4';
- const CHECK_INTERVAL_MS=3*60*1000;
+ // Must match the version shipped in the adjacent version.json manifest.
+ const CURRENT_HUB_VERSION='9.15.6';
+ const CHECK_INTERVAL_MS=15*60*1000;
+ const NOTICE_SNOOZE_MS=24*60*60*1000;
+ const NOTICE_STORAGE_KEY='sut:hub-update:snoozed-v2';
+ const ATTEMPT_STORAGE_KEY='sut:hub-update:attempted-v2';
  let checking=false,pendingVersion='',ignoredVersion='';
+ function readUpdateState(key){
+  try{return JSON.parse(window.localStorage.getItem(key)||'null');}catch(e){return null;}
+ }
+ function writeUpdateState(key,value){
+  try{window.localStorage.setItem(key,JSON.stringify(value));}catch(e){}
+ }
+ function suppressRepeatedNotice(version){
+  if(!version||version===ignoredVersion)return true;
+  const snoozed=readUpdateState(NOTICE_STORAGE_KEY);
+  if(snoozed&&snoozed.version===version&&Number(snoozed.until)>Date.now())return true;
+  const attempted=readUpdateState(ATTEMPT_STORAGE_KEY);
+  if(attempted&&attempted.version===version&&Number(attempted.until)>Date.now())return true;
+  // Fallback also works if Safari denies access to localStorage.
+  try{if(new URL(location.href).searchParams.get('hub_v')===version)return true;}catch(e){}
+  return false;
+ }
  const backdrop=document.getElementById('hubUpdateBackdrop');
  const updateBtn=document.getElementById('hubUpdateNow');
  const laterBtn=document.getElementById('hubUpdateLater');
@@ -3632,8 +3652,14 @@ try{render()}catch(e){
    if(!response.ok) return;
    const manifest=await response.json();
    if(!manifest||manifest.app!=='SUT_UNIFIED'||!manifest.version)return;
-   if(versionCmp(manifest.version,CURRENT_HUB_VERSION)>0&&manifest.version!==ignoredVersion){
-    renderNotice(manifest.version,String(manifest.message||''));
+   if(versionCmp(manifest.version,CURRENT_HUB_VERSION)>0){
+    if(!suppressRepeatedNotice(manifest.version)){
+     renderNotice(manifest.version,String(manifest.message||''));
+    }
+   }else{
+    // The HTML is already up to date: never prompt again for this manifest.
+    pendingVersion='';
+    backdrop.classList.remove('show');
    }
   }catch(e){ console.warn('Không kiểm tra được bản cập nhật SUT HUB',e); }
   finally{checking=false}
@@ -3647,6 +3673,9 @@ try{render()}catch(e){
       'Bạn có chắc muốn tải lại trang? Dữ liệu local sẽ được giữ nguyên nếu trình duyệt hỗ trợ lưu trữ.';
    if(!window.confirm(confirmText))return;
   }
+  // Prevent a popup loop if Safari or a CDN still returns the old HTML after reload.
+  writeUpdateState(ATTEMPT_STORAGE_KEY,{version:pendingVersion,until:Date.now()+NOTICE_SNOOZE_MS});
+  backdrop.classList.remove('show');
   // No localStorage.clear(), no service worker deregistration, no forced data reset.
   const destination=new URL(location.href);
   destination.searchParams.set('hub_v',pendingVersion);
@@ -3655,6 +3684,7 @@ try{render()}catch(e){
  }
  laterBtn.addEventListener('click',()=>{
   ignoredVersion=pendingVersion;
+  if(pendingVersion)writeUpdateState(NOTICE_STORAGE_KEY,{version:pendingVersion,until:Date.now()+NOTICE_SNOOZE_MS});
   backdrop.classList.remove('show');
  });
  updateBtn.addEventListener('click',doUpdate);

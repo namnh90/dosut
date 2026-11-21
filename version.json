@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.15.5",
-  "message": "Đảo thứ tự 2 bước TQC của quy trình Nhận quỹ cuối ngày tại L1 \"10. Điều chuyển tiền nộp về quỹ chính\": NQCN27 hiển thị trước NQCN24 theo yêu cầu người dùng."
+  "version": "9.15.6",
+  "message": "Sửa lỗi popup cập nhật lặp trên Safari/iPhone: đồng bộ số phiên bản nội bộ với version.json, ghi nhận Cập nhật ngay/Để sau và không hỏi lại liên tục khi HTML bị cache."
 }
