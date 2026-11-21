@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.15.3",
-  "message": "Tại VCBC / Nhận quỹ cuối ngày / TQC / 7.3 (NQCN13), hiển thị Số lệnh nhận quỹ (AJ), không hiện Tiền ngoại tệ. Các bước khác giữ nguyên."
+  "version": "9.15.5",
+  "message": "Đảo thứ tự 2 bước TQC của quy trình Nhận quỹ cuối ngày tại L1 \"10. Điều chuyển tiền nộp về quỹ chính\": NQCN27 hiển thị trước NQCN24 theo yêu cầu người dùng."
 }
