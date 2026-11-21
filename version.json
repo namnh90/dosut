@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.14.9",
-  "message": "TQC – Nhận quỹ cuối ngày, bước 7.3 Kiểm đếm tiền ngoại tệ: bỏ thông tin bổ sung và cảnh báo thiếu trường."
+  "version": "9.15.2",
+  "message": "Ẩn Kết thúc phiên ở màn hình Đo, chỉ hiển thị tại màn hình chọn L1/L2. Giữ nguyên dữ liệu và chức năng còn lại của V9.15.1."
 }
