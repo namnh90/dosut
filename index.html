@@ -1490,7 +1490,7 @@ function resetMeasureCaches(){
  state.profile={unit:'',observer,operator:'',role:'',transCode:''};
  state.process='';state.l1='';state.stepId='';state.selectedRunId='';
  state.draft={code:'',note:'',special:{}};
- state.manual={processCode:'',process:'',l1:'',l2:'',unit:'',frequency:'',stepCode:'',otherNote:'',workCategory:''};
+ state.manual={processCode:'',process:'',l1:'',l2:'',unit:'',frequency:'',stepCode:'',otherNote:'',workCategory:'',roleOther:'',jdOther:''};
  state.manualStep=null;state.parallelPair=null;state.extraMemory={};state.sessionMoneyMemory={};
  state.date='';state.exportDate='';state.exportProcess='';
 }
@@ -2424,8 +2424,15 @@ function updateManualProcessFields(){
  const v=sel.value;const isOther=v==='__OTHER__';if(other)other.classList.toggle('hidden',!isOther);sutManualCategoryChanged();
  if(code){if(isOther&&code.readOnly)code.value='';else if(v&&!isOther)code.value=v.split('|||')[0];else if(!isOther)code.value='';code.readOnly=!!v&&!isOther;}
 }
+function sutManualRoleChanged(){
+ const custom=$('manualCustomRoleWrap'),role=$('manualRole')?.value||'';
+ if(custom)custom.classList.toggle('hidden',role!=='KHÁC');
+ const input=$('manualCustomRole');
+ if(input)input.required=role==='KHÁC';
+}
 function manualScreen(){
  const m=state.manual, selected=manualProcessValue(m);
+ const customRoleSelected=state.profile.role==='KHÁC'||(!!String(m.roleOther||'').trim()&&state.profile.role===m.roleOther);
  const choices=manualProcessChoices();
  const processSelect=`<div><label for="manualProcessSelect">QUY TRÌNH (tùy chọn)</label><select id="manualProcessSelect"><option value="">-- Chưa chọn quy trình --</option>${choices.map(p=>{const v=p.code+'|||'+p.name;return `<option value="${E(v)}" ${selected===v?'selected':''}>${E(p.name)} (${E(p.code)})</option>`}).join('')}<option value="__OTHER__" ${selected==='__OTHER__'?'selected':''}>KHÁC – công việc ngoài danh mục</option></select></div>`;
  return `<section class="screen"><div class="panel"><div class="eyebrow">Đo thao tác tự khai báo</div><h2 class="title">Tự nhập quy trình và L2</h2><div class="form-grid">
@@ -2435,7 +2442,7 @@ function manualScreen(){
  ${state.profile.unit?`<div class="field-wide"><label for="manualRole">2. CHỨC DANH *</label><select id="manualRole">
  <option value="">-- Chọn chức danh --</option>
  ${sutJDOptions(state.profile.unit,state.profile.role,false)}
- <option value="KHÁC" ${state.profile.role==='KHÁC'?'selected':''}>Khác</option></select></div>`:''}
+ <option value="KHÁC" ${customRoleSelected?'selected':''}>Khác</option></select></div><div id="manualCustomRoleWrap" class="field-wide ${customRoleSelected?'':'hidden'}"><label for="manualCustomRole">TÊN JD / CHỨC DANH (TỰ NHẬP) *</label><input id="manualCustomRole" type="text" maxlength="120" autocomplete="off" value="${E(m.roleOther||'')}" placeholder="Ví dụ: KSV ĐT" ${customRoleSelected?'required':''}><div class="muted-note">Nhập tên JD / chức danh, ví dụ KSV ĐT — không nhập mã JD dạng HO.0175.08.000. Tên này sẽ hiển thị trong mẫu đo, danh sách, Dashboard và cột Chức danh khi xuất Excel.</div></div>`:''}
  ${sutVcbUserField('manualObserver','NGƯỜI ĐO LƯỜNG (TÙY CHỌN)',state.profile.observer,true)}${sutVcbUserField('manualOperator','NGƯỜI ĐƯỢC ĐO (TÙY CHỌN)',state.profile.operator,true)}${processSelect}${field('manualProcessCode','Mã quy trình (tự điền nếu chọn Khác)',m.processCode)}<div id="manualCategoryWrap" class="field-wide ${selected==='__OTHER__'?'':'hidden'}"><label for="manualCategorySelect">PHÂN LOẠI CÔNG VIỆC (TÙY CHỌN)</label><select id="manualCategorySelect"><option value="">-- Chọn phân loại công việc --</option>${SUT_MANUAL_OTHER_CATEGORIES.map(x=>`<option value="${E(x)}" ${(m.workCategory||'')===x?'selected':''}>${E(x)}</option>`).join('')}</select><div id="manualMoneyHint" class="muted-note ${(m.workCategory||'')==='Kiểm đếm tiền mặt'?'':'hidden'}" style="padding:10px 12px;background:#fff7e5;border:1px solid #e5c886;border-radius:10px;margin-top:9px">Nếu chọn VND: Kiểm đếm nguyên niêm phong (Số tiền, Số bó) và Kiểm đếm chi tiết (Số tiền, Số thếp). Nếu chọn Ngoại tệ: không cần nhập thêm ô tiền. Loại tiền vẫn được lưu vào mẫu.</div></div><div id="manualOtherWrap" class="field-wide ${selected==='__OTHER__'?'':'hidden'}"><label for="manualOtherNote">GHI CHÚ CÔNG VIỆC KHÁC (tùy chọn)</label><textarea id="manualOtherNote" placeholder="Mô tả quy trình hoặc công việc khác">${E(m.otherNote|| (selected==='__OTHER__'&&m.process!=='Khác'?m.process:''))}</textarea></div>${field('manualL1','Nhóm L1 (nếu có)',m.l1)}<div class="field-wide"><label>Thao tác L2 (có thể bổ sung sau)</label><textarea id="manualL2">${E(m.l2)}</textarea></div>${field('manualStepCode','Mã bước (tùy chọn)',m.stepCode)}${field('manualMeasureUnit','Đơn vị đo (đơn vị tính) (tùy chọn)',m.unit)}${field('manualFreq','Tần suất đo',m.frequency)}</div><div class="footer-actions">${button('VÀO MÀN ĐO →','manualNext')}</div></div></section>`}
 
 function codeDateTime(ts=now()){
@@ -2744,9 +2751,10 @@ function setManualFromForm(){
  const otherNote=isOther?($('manualOtherNote')?.value.trim()||''):'';
  const workCategory=isOther?($('manualCategorySelect')?.value||''):'';
  const fields={role:$('manualRole')?.value,unit:$('manualUnit')?.value,observer:$('manualObserver')?.value.trim(),operator:$('manualOperator')?.value.trim(),processCode:selected?.code||$('manualProcessCode')?.value.trim()||'',process:selected?.name||(isOther?'Khác':''),l1:$('manualL1')?.value.trim(),l2:$('manualL2')?.value.trim(),stepCode:$('manualStepCode')?.value.trim(),measureUnit:$('manualMeasureUnit')?.value.trim(),frequency:$('manualFreq')?.value.trim(),code:''};
- if(!fields.unit||!fields.role){alertMsg('Vui lòng chọn ĐƠN VỊ ĐO và CHỨC DANH trước khi vào màn đo.');return false}if(!sutCheckUserFields(['manualObserver','manualOperator']))return false;
- state.profile={role:fields.role,unit:fields.unit,warehouse:'',observer:fields.observer,operator:fields.operator,transCode:fields.code};state.manual={processCode:fields.processCode,process:fields.process,l1:fields.l1,l2:fields.l2,stepCode:fields.stepCode,unit:fields.measureUnit,frequency:fields.frequency,otherNote,workCategory};
- const jd=sutRolesForUnit(fields.unit).find(x=>x.role===fields.role)?.jd||'';state.manualStep={id:'manual|'+Date.now()+'|'+Math.random().toString(36).slice(2,8),role:fields.role,jd,processCode:fields.processCode,process:fields.process,l1:fields.l1,l2:fields.l2,stepCode:fields.stepCode,unit:fields.measureUnit,frequency:fields.frequency,special:workCategory==='Kiểm đếm tiền mặt'?'Chọn VND hoặc Ngoại tệ. VND: Kiểm đếm nguyên niêm phong (Số tiền, Số bó); Kiểm đếm chi tiết (Số tiền, Số thếp). Ngoại tệ: không cần nhập thêm.':(workCategory==='Hội tiền'?'Nhập thông tin số tiền chi tiết':'') ,extraCols:workCategory==='Kiểm đếm tiền mặt'?[
+ if(!fields.unit||!fields.role){alertMsg('Vui lòng chọn ĐƠN VỊ ĐO và CHỨC DANH trước khi vào màn đo.');return false}const customRole=fields.role==='KHÁC'?($('manualCustomRole')?.value||'').trim():'';if(fields.role==='KHÁC'&&!customRole){alertMsg('Bạn đã chọn Chức danh KHÁC. Vui lòng nhập TÊN JD / CHỨC DANH (ví dụ KSV ĐT) trước khi vào màn đo.');$('manualCustomRole')?.focus();return false}if(!sutCheckUserFields(['manualObserver','manualOperator']))return false;
+ const measuredRole=fields.role==='KHÁC'?customRole:fields.role;
+ state.profile={role:measuredRole,unit:fields.unit,warehouse:'',observer:fields.observer,operator:fields.operator,transCode:fields.code};state.manual={processCode:fields.processCode,process:fields.process,l1:fields.l1,l2:fields.l2,stepCode:fields.stepCode,unit:fields.measureUnit,frequency:fields.frequency,otherNote,workCategory,roleOther:customRole,jdOther:''};
+ const jd=fields.role==='KHÁC'?'':(sutRolesForUnit(fields.unit).find(x=>x.role===fields.role)?.jd||'');state.manualStep={id:'manual|'+Date.now()+'|'+Math.random().toString(36).slice(2,8),role:measuredRole,jd,processCode:fields.processCode,process:fields.process,l1:fields.l1,l2:fields.l2,stepCode:fields.stepCode,unit:fields.measureUnit,frequency:fields.frequency,special:workCategory==='Kiểm đếm tiền mặt'?'Chọn VND hoặc Ngoại tệ. VND: Kiểm đếm nguyên niêm phong (Số tiền, Số bó); Kiểm đếm chi tiết (Số tiền, Số thếp). Ngoại tệ: không cần nhập thêm.':(workCategory==='Hội tiền'?'Nhập thông tin số tiền chi tiết':'') ,extraCols:workCategory==='Kiểm đếm tiền mặt'?[
  {col:'AJ',label:'Kiểm đếm chi tiết - Số tiền',required:false},
  {col:'AK',label:'Kiểm đếm chi tiết - Số thếp',required:false},
  {col:'AL',label:'Kiểm đếm nguyên niêm phong - Số tiền',required:false},
@@ -3486,11 +3494,11 @@ function onChange(e){const el=e.target;
     state.profile.unit=el.value;state.profile.warehouse='';
    if(prev!==state.profile.unit||oldWarehouse!==state.profile.warehouse){
      state.profile.role='';state.process='';state.l1='';state.stepId='';
-     state.manual.process='';state.manual.processCode='';state.manual.workCategory='';
+     state.manual.process='';state.manual.processCode='';state.manual.workCategory='';state.manual.jdOther='';state.manual.roleOther='';
    }
    save();render();return;
  }
- if(el.id==='manualProcessSelect'){updateManualProcessFields();return}if(el.id==='manualCategorySelect'){sutManualCategoryChanged();return}if(el.id==='listDate'){state.date=el.value;if(state.modalScope==='holds')viewHolds();else viewSaved(listScopedToL2);save();return}if(el.id==='listWarningOnly'){state.listWarningOnly=!!el.checked;save();viewSaved(listScopedToL2);return}if(el.id==='listExportDate'||el.id==='listExportProcess'){
+ if(el.id==='manualRole'){sutManualRoleChanged();return}if(el.id==='manualProcessSelect'){updateManualProcessFields();return}if(el.id==='manualCategorySelect'){sutManualCategoryChanged();return}if(el.id==='listDate'){state.date=el.value;if(state.modalScope==='holds')viewHolds();else viewSaved(listScopedToL2);save();return}if(el.id==='listWarningOnly'){state.listWarningOnly=!!el.checked;save();viewSaved(listScopedToL2);return}if(el.id==='listExportDate'||el.id==='listExportProcess'){
   if(el.id==='listExportDate')state.exportDate=el.value;
   else state.exportProcess=el.value;
   save();viewSaved(listScopedToL2);return;
@@ -3620,7 +3628,7 @@ try{render()}catch(e){
 (function(){
  'use strict';
  // Must match the version shipped in the adjacent version.json manifest.
- const CURRENT_HUB_VERSION='9.15.7';
+ const CURRENT_HUB_VERSION='9.15.9';
  const CHECK_INTERVAL_MS=15*60*1000;
  const NOTICE_SNOOZE_MS=24*60*60*1000;
  const NOTICE_STORAGE_KEY='sut:hub-update:snoozed-v2';

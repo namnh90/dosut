@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.15.7",
-  "message": "Chuyển đợt dữ liệu: cô lập HTTP queue cũ; mẫu cũ chỉ giữ local, không gửi lại SharePoint; START mới tự đồng bộ với syncEpoch SUT_RESET_20261122_01. CẦN chặn request không đúng epoch trong Power Automate trước khi xóa SharePoint."
+  "version": "9.15.9",
+  "message": "Đo tự nhập > Chức danh Khác: nhập TÊN JD / CHỨC DANH, ví dụ KSV ĐT (không phải mã JD). Lưu vào chức danh của mẫu và Excel; cột mã JD để trống khi chưa có mã."
 }
