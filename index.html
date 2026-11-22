@@ -1523,7 +1523,18 @@ function calc(r,at=now()){const totalMs=milliseconds((r.end??at)-r.start),holdMs
 // V9.6.7 - HTTP backend. Only one SharePoint item per START / RunID.
 // The signed URL is intentionally embedded at the owner's request.
 const SUT_HTTP_URL='https://default460cecfbf0c64dd7a5ec66ef4d75ae.63.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/17/workflows/f10cd64dd7634fa0aecde0263cea6e4a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qjDnkU75v8V_DXYxjXpT1USrdthkwvxhBYZIXzYm8Mc';
-const SUT_HTTP_QUEUE_KEY='VCBC_SUT_HTTP_QUEUE_V967';
+// V9.15.7: switch to a fresh synchronization epoch for data cutover.
+// DO NOT read, flush or migrate old VCBC_SUT_HTTP_QUEUE_V967 requests.
+// IMPORTANT: The Power Automate receiver must also reject POSTs from old clients
+// without the matching syncEpoch; frontend-only protection cannot stop old tabs.
+const SUT_SYNC_EPOCH='SUT_RESET_20261122_01';
+const SUT_HTTP_OLD_QUEUE_KEY='VCBC_SUT_HTTP_QUEUE_V967';
+const SUT_HTTP_QUEUE_KEY='VCBC_SUT_HTTP_QUEUE_EPOCH_20261122_01';
+let sutLegacyWarningShown=false;
+function sutOldQueueSize(){
+ try{const q=JSON.parse(localStorage.getItem(SUT_HTTP_OLD_QUEUE_KEY)||'[]');return Array.isArray(q)?q.length:0}catch{return 0}
+}
+
 const SUT_HTTP_LAST_KEY='VCBC_SUT_HTTP_LAST_V967';
 const SUT_HTTP_ACK_KEY='VCBC_SUT_HTTP_ACK_V967';
 let sutLocalResetting=false;
@@ -1549,7 +1560,7 @@ function sutClearLocal(){
  for(const k of keys)localStorage.removeItem(k);
  window.location.reload();
 }
-function sutStatusHTML(){return `<div class="sut-sync-panel"><span id="sutHttpStatus">${E(sutHttpStatus)} · ${sutQueueRead().length} yêu cầu chờ gửi</span><button type="button" class="mini" data-action="sutRetry">GỬI LẠI DỮ LIỆU CHƯA ĐỒNG BỘ</button><button type="button" class="mini sut-clear-button" data-action="sutClearLocal">XÓA DỮ LIỆU THỪA CÒN SÓT CỦA PHIÊN BẢN OFFLINE CŨ</button>
+function sutStatusHTML(){return `<div class="sut-sync-panel">${sutOldQueueSize()?`<div class="alert" style="margin-bottom:8px">Có ${sutOldQueueSize()} yêu cầu đồng bộ từ đợt cũ đang được cách ly trên máy. Chúng KHÔNG tự gửi lên SharePoint mới.</div>`:''}<span id="sutHttpStatus">${E(sutHttpStatus)} · ${sutQueueRead().length} yêu cầu chờ gửi</span><button type="button" class="mini" data-action="sutRetry">GỬI LẠI DỮ LIỆU CHƯA ĐỒNG BỘ</button><button type="button" class="mini sut-clear-button" data-action="sutClearLocal">XÓA DỮ LIỆU THỪA CÒN SÓT CỦA PHIÊN BẢN OFFLINE CŨ</button>
  <details class="sut-offline-panel" hidden aria-hidden="true"><summary class="sut-offline-trigger" title="Công cụ mất kết nối Internet"><span class="sut-no-wifi" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M8.5 5.2A17.6 17.6 0 0 1 12 4.8a17.5 17.5 0 0 1 10 3.1"/><path d="M2 8a17.5 17.5 0 0 1 3.5-1.9"/><path d="M5.5 12a11 11 0 0 1 3.1-1.5"/><path d="M13.5 10.5A11 11 0 0 1 18.5 12"/><path d="M9 16a5 5 0 0 1 5.8-.4"/><path d="M12 20h.01"/></svg></span><b class="sut-offline-label">KHÔNG CÓ INTERNET? <span class="sut-offline-subtitle">CHUYỂN JSON OFFLINE</span></b><span class="sut-offline-chevron" aria-hidden="true">▼</span></summary><div class="sut-offline-content"><strong>CÔNG CỤ TRUYỀN DỮ LIỆU NGOẠI TUYẾN</strong><p>Máy không có mạng: xuất JSON. Máy có mạng: nhập JSON, kiểm tra trùng RunID/Revision rồi xác nhận. Không tự gửi chỉ vì vừa chọn file.</p><div class="sut-bridge-controls"><button type="button" class="mini sut-bridge-export" data-action="sutBridgeExport">⬇ XUẤT JSON CHƯA ĐỒNG BỘ</button><button type="button" class="mini sut-bridge-import" data-action="sutBridgeChoose">⬆ NHẬP JSON & KIỂM TRA TRÙNG</button><button type="button" class="mini sut-bridge-receipt-btn" data-action="sutBridgeReceiptChoose">✓ NHẬP BIÊN NHẬN ĐÃ GỬI</button></div></div></details>
  <input type="file" id="sutBridgeFileInput" accept=".json,application/json" style="display:none" aria-label="Chọn file JSON đồng bộ SUT"><input type="file" id="sutBridgeReceiptInput" accept=".json,application/json" style="display:none" aria-label="Chọn biên nhận đồng bộ SUT"></div>`}
 
@@ -1686,6 +1697,9 @@ async function sutBridgeVerify(){
   const shadow=new Map();
   for(const p of sutBridgePlan){
    const item=p.item,observer=String(item.data.NguoiDoLuong||'').trim(),key=observer+'|'+item.runId;
+   if(item.syncEpoch!==SUT_SYNC_EPOCH||item.data?.SyncEpoch!==SUT_SYNC_EPOCH){
+    p.verdict='block';p.reason='Gói dữ liệu thuộc đợt cũ, không được gửi vào SharePoint đợt mới';continue;
+   }
    if(!shadow.has(key)){
     const remote=lookup.get(observer).get(item.runId);
     shadow.set(key,remote?{...remote,exists:true,virtual:false}:{revision:0,status:'',exists:false,virtual:false});
@@ -1728,6 +1742,9 @@ async function sutBridgeSend(){
   for(const row of sutBridgePlan){
    if(row.verdict!=='ready')continue;
    const item=row.item,observer=String(item.data.NguoiDoLuong||'').trim();
+   if(item.syncEpoch!==SUT_SYNC_EPOCH||item.data?.SyncEpoch!==SUT_SYNC_EPOCH){
+    row.verdict='block';row.reason='Khác đợt dữ liệu: từ chối gửi';failed++;error=row.reason;break;
+   }
    try{
     // Re-check actual SharePoint immediately before EACH POST to mitigate multi-device races.
     const remote=(await sutBridgeFetchRuns(observer)).get(item.runId);
@@ -1750,9 +1767,9 @@ async function sutBridgeSend(){
 function sutSnapshot(r,status){
  const c=calc(r),ss=(state.measureSessions||[]).find(x=>x.id===r.sessionId)||null;
  const holdArr=(r.holds||[]).map((h,i)=>{const durationMs=milliseconds((h.end??now())-h.start);return {...h,holdId:h.holdId||`${r.id}_h${i+1}`,startUTC:sutIso(h.start),stopUTC:sutIso(h.end),startLocal:sutLocalIso(h.start),stopLocal:sutLocalIso(h.end),timeZone:SUT_TIME_ZONE,milliseconds:durationMs,durationMs,seconds:durationMs/1000};});
- const full={...structuredFallback(r),status,runId:r.id,sessionId:r.sessionId,maGiaoDich:r.code,startUTC:sutIso(r.start),stopUTC:sutIso(r.end),startLocal:sutLocalIso(r.start),stopLocal:sutLocalIso(r.end),timeZone:SUT_TIME_ZONE,utcOffset:'+07:00',holds:holdArr,session:ss,totalMilliseconds:c.totalMs,holdMilliseconds:c.holdMs,netMilliseconds:c.netMs,totalSeconds:c.total,holdSeconds:c.hold,netSeconds:c.net};
+ const full={...structuredFallback(r),syncEpoch:r._syncEpoch||null,status,runId:r.id,sessionId:r.sessionId,maGiaoDich:r.code,startUTC:sutIso(r.start),stopUTC:sutIso(r.end),startLocal:sutLocalIso(r.start),stopLocal:sutLocalIso(r.end),timeZone:SUT_TIME_ZONE,utcOffset:'+07:00',holds:holdArr,session:ss,totalMilliseconds:c.totalMs,holdMilliseconds:c.holdMs,netMilliseconds:c.netMs,totalSeconds:c.total,holdSeconds:c.hold,netSeconds:c.net};
  const active=r.activeHold?{...r.activeHold,startUTC:sutIso(r.activeHold.start),stopUTC:sutIso(r.activeHold.end),startLocal:sutLocalIso(r.activeHold.start),stopLocal:sutLocalIso(r.activeHold.end),timeZone:SUT_TIME_ZONE,elapsedMilliseconds:milliseconds(now()-r.activeHold.start)}:null;
- return {Title:r.code||r.id,RunID:r.id,SessionID:r.sessionId||'',UserEmail:r.profile?.email||'',DonVi:r.profile?.unit||'',ChucDanh:r.step?.role||r.profile?.role||'',MaQuyTrinh:r.step?.sourceProcessCode||r.step?.processCode||'',TenQuyTrinh:r.step?.process||'',MaL1:r.step?.l1||'',MaL2:r.step?.stepCode||'',LoaiMau:r.step?.manual?'TU_NHAP':'QUY_TRINH',NgayDo:sutSharePointDate(r.start),Status:status,IsDeleted:status==='DELETED'||status==='CANCELLED',StartUTC:sutSharePointDate(r.start),StopUTC:sutSharePointDate(r.end),HoldStartUTC:sutSharePointDate(r.activeHold?.start),TotalSeconds:c.total,HoldSeconds:c.hold,NetSeconds:c.net,HoldCount:holdArr.length+(active?1:0),Revision:r._syncRevision||1,NguoiDoLuong:r.profile?.observer||'',CanBoTacNghiep:r.profile?.operator||'',DataJSON:JSON.stringify(full),HoldJSON:JSON.stringify(holdArr),SessionJSON:JSON.stringify(ss||{sessionId:r.sessionId||'',maGiaoDich:r.code}),ActiveHoldJSON:JSON.stringify(active||{}),LastSyncUTC:sutSharePointDate(now())};
+ return {SyncEpoch:r._syncEpoch||null,Title:r.code||r.id,RunID:r.id,SessionID:r.sessionId||'',UserEmail:r.profile?.email||'',DonVi:r.profile?.unit||'',ChucDanh:r.step?.role||r.profile?.role||'',MaQuyTrinh:r.step?.sourceProcessCode||r.step?.processCode||'',TenQuyTrinh:r.step?.process||'',MaL1:r.step?.l1||'',MaL2:r.step?.stepCode||'',LoaiMau:r.step?.manual?'TU_NHAP':'QUY_TRINH',NgayDo:sutSharePointDate(r.start),Status:status,IsDeleted:status==='DELETED'||status==='CANCELLED',StartUTC:sutSharePointDate(r.start),StopUTC:sutSharePointDate(r.end),HoldStartUTC:sutSharePointDate(r.activeHold?.start),TotalSeconds:c.total,HoldSeconds:c.hold,NetSeconds:c.net,HoldCount:holdArr.length+(active?1:0),Revision:r._syncRevision||1,NguoiDoLuong:r.profile?.observer||'',CanBoTacNghiep:r.profile?.operator||'',DataJSON:JSON.stringify(full),HoldJSON:JSON.stringify(holdArr),SessionJSON:JSON.stringify(ss||{sessionId:r.sessionId||'',maGiaoDich:r.code}),ActiveHoldJSON:JSON.stringify(active||{}),LastSyncUTC:sutSharePointDate(now())};
 }
 function sutAckRevision(runId){
  try{return Number(JSON.parse(localStorage.getItem(SUT_HTTP_ACK_KEY)||'{}')[runId]||0)}catch{return 0}
@@ -1762,6 +1779,16 @@ function sutRememberAck(runId,revision){
 }
 function sutEnqueue(action,r,status){
  if(!r)return;
+ if(r._syncEpoch!==SUT_SYNC_EPOCH){
+  sutHttpStatus='Mẫu từ đợt cũ: chỉ giữ local, KHÔNG gửi lên SharePoint mới.';
+  sutStatusRefresh();
+  if(!sutLegacyWarningShown){
+   sutLegacyWarningShown=true;
+   queueMicrotask(()=>alertMsg('Đây là mẫu lưu từ đợt đo trước. Bản mới KHÔNG gửi dữ liệu của mẫu này lên SharePoint. Có thể xem hoặc xuất Excel; để đồng bộ, hãy bắt đầu một mẫu đo mới.'));
+  }
+  return;
+ }
+
  r._syncRevision=(r._syncRevision||0)+1;
  const data=sutSnapshot(r,status);
  const q=sutQueueRead();
@@ -1785,7 +1812,7 @@ function sutEnqueue(action,r,status){
    expectedRevision=sutAckRevision(r.id)||expectedRevision;
   }
  }
- const entry={action,requestId:sutUUID(),runId:r.id,sessionId:r.sessionId||'',expectedRevision,data};
+ const entry={action,requestId:sutUUID(),syncEpoch:SUT_SYNC_EPOCH,runId:r.id,sessionId:r.sessionId||'',expectedRevision,data};
  q.push(entry);sutQueueWrite(q);save();
  sutHttpStatus='Đang gửi '+action+'…';sutStatusRefresh();void sutFlush();
 }
@@ -1804,6 +1831,12 @@ async function sutFlush(){
    const q=sutQueueRead();
    const item=q.find(x=>x.requestId===requestId);
    if(!item)continue;
+   if(item.syncEpoch!==SUT_SYNC_EPOCH||item.data?.SyncEpoch!==SUT_SYNC_EPOCH){
+    // Never send legacy records accidentally moved into the active queue.
+    sutHttpStatus='Đã khóa request khác đợt dữ liệu; không gửi lên SharePoint.';
+    sutStatusRefresh();
+    continue;
+   }
    const runKey=String(item.runId||'__missing_run__');
    if(blockedRuns.has(runKey))continue;
    // Không gửi vượt một yêu cầu trước đó của cùng RunID.
@@ -2180,7 +2213,7 @@ function saveParallelSetup(){
  save();closeModal();render();
 }
 function removeParallelSetup(){if(!parallelEnabledForCurrentStep()){state.parallelPair=null;save();render();return}if(parallelActiveRows().some(([,r])=>!!r)){alertMsg('Vẫn còn mẫu song song đang đo. Hãy STOP hoặc hủy mẫu song song trước khi gỡ cặp.');return}state.parallelPair=null;save();render();}
-function createRunFor(stepObj,profile,draft,target='main'){const session=ensureSession(stepObj,profile);rememberSpecial(stepObj,draft.special||{});const id='run_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);const rec={id,sessionId:session.id,step:structuredFallback(stepObj),profile:structuredFallback(profile),code:session.code,note:draft.note||'',special:structuredFallback(draft.special||{}),start:now(),end:null,holds:[],activeHold:null};state.runs.push(rec);sutEnqueue('START',rec,'RUNNING');if(target==='main')state.selectedRunId=id;else if(state.parallelPair)state.parallelPair.secondary.runId=id;save();return rec;}
+function createRunFor(stepObj,profile,draft,target='main'){const session=ensureSession(stepObj,profile);rememberSpecial(stepObj,draft.special||{});const id='run_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);const rec={id,_syncEpoch:SUT_SYNC_EPOCH,sessionId:session.id,step:structuredFallback(stepObj),profile:structuredFallback(profile),code:session.code,note:draft.note||'',special:structuredFallback(draft.special||{}),start:now(),end:null,holds:[],activeHold:null};state.runs.push(rec);sutEnqueue('START',rec,'RUNNING');if(target==='main')state.selectedRunId=id;else if(state.parallelPair)state.parallelPair.secondary.runId=id;save();return rec;}
 function stopRunById(id,target='main'){const r=state.runs.find(x=>x.id===id);if(!r||r.activeHold)return false;r.end=now();state.records.push(structuredFallback(r));sutEnqueue('STOP',r,'STOPPED');state.runs=state.runs.filter(x=>x.id!==id);if(target==='main'&&state.selectedRunId===id)state.selectedRunId='';if(target==='secondary'&&state.parallelPair?.secondary?.runId===id)state.parallelPair.secondary.runId='';save();return true;}
 function holdRunById(id){const r=state.runs.find(x=>x.id===id);if(!r)return false;if(r.activeHold){r.activeHold.end=now();save();reasonModal(id);return true}if((r.holds||[]).length>=20){alertMsg('Tối đa 20 lần HOLD cho một mẫu.');return false}r.activeHold={start:now(),end:null};save();sutEnqueue('SYNC',r,'HOLD');render();return true}
 
@@ -2208,7 +2241,7 @@ function parallelStartAll(){
   const session=ensureSession(x.step,x.profile);
   const r={
    id:'run_'+at+'_'+Math.random().toString(36).slice(2,10),
-   parallelPairId:pairId,parallelOwner:x.owner,
+   parallelPairId:pairId,parallelOwner:x.owner,_syncEpoch:SUT_SYNC_EPOCH,
    sessionId:session.id,step:structuredFallback(x.step),
    profile:structuredFallback(x.profile),code:session.code,
    note:x.draft.note||'',special:structuredFallback(x.draft.special||{}),
@@ -2809,7 +2842,7 @@ function saveExtraEdit(id){
 function start(){syncDraft();const s=step();if(!s||run())return;const d=state.draft;
  const session=ensureSession(s);rememberSpecial(s,d.special);
  const id='run_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
- state.runs.push({id,sessionId:session.id,step:structuredFallback(s),profile:structuredFallback(state.profile),code:session.code,note:d.note,special:structuredFallback(d.special),start:now(),end:null,holds:[],activeHold:null});
+ state.runs.push({id,_syncEpoch:SUT_SYNC_EPOCH,sessionId:session.id,step:structuredFallback(s),profile:structuredFallback(state.profile),code:session.code,note:d.note,special:structuredFallback(d.special),start:now(),end:null,holds:[],activeHold:null});
  state.selectedRunId=id;save();sutEnqueue('START',state.runs.find(x=>x.id===id),'RUNNING');render()}
 function stop(){const r=run();if(!r||r.activeHold)return;syncDraft();r.end=now();
  state.records.push(structuredFallback(r));sutEnqueue('STOP',r,'STOPPED');state.runs=state.runs.filter(x=>x.id!==r.id);state.selectedRunId='';state.draft=newStepDraft(r.step);save();
@@ -3587,7 +3620,7 @@ try{render()}catch(e){
 (function(){
  'use strict';
  // Must match the version shipped in the adjacent version.json manifest.
- const CURRENT_HUB_VERSION='9.15.6';
+ const CURRENT_HUB_VERSION='9.15.7';
  const CHECK_INTERVAL_MS=15*60*1000;
  const NOTICE_SNOOZE_MS=24*60*60*1000;
  const NOTICE_STORAGE_KEY='sut:hub-update:snoozed-v2';

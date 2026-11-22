@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.15.6",
-  "message": "Sửa lỗi popup cập nhật lặp trên Safari/iPhone: đồng bộ số phiên bản nội bộ với version.json, ghi nhận Cập nhật ngay/Để sau và không hỏi lại liên tục khi HTML bị cache."
+  "version": "9.15.7",
+  "message": "Chuyển đợt dữ liệu: cô lập HTTP queue cũ; mẫu cũ chỉ giữ local, không gửi lại SharePoint; START mới tự đồng bộ với syncEpoch SUT_RESET_20261122_01. CẦN chặn request không đúng epoch trong Power Automate trước khi xóa SharePoint."
 }
