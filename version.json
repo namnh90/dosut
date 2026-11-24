@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.15.9",
-  "message": "Đo tự nhập > Chức danh Khác: nhập TÊN JD / CHỨC DANH, ví dụ KSV ĐT (không phải mã JD). Lưu vào chức danh của mẫu và Excel; cột mã JD để trống khi chưa có mã."
+  "version": "9.16.2",
+  "message": "Sửa báo cáo Admin ATM hiện toàn 0: không loại SUT chỉ vì chưa có chuẩn BTK hoặc thiếu chỉ tiêu bổ sung không phải mẫu số; tổng thời gian đo/HOLD tính trên mọi mẫu STOPPED; Admin có thể nhập danh sách username BTK để phân loại báo cáo."
 }
