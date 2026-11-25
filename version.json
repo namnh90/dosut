@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.16.2",
-  "message": "Sửa báo cáo Admin ATM hiện toàn 0: không loại SUT chỉ vì chưa có chuẩn BTK hoặc thiếu chỉ tiêu bổ sung không phải mẫu số; tổng thời gian đo/HOLD tính trên mọi mẫu STOPPED; Admin có thể nhập danh sách username BTK để phân loại báo cáo."
+  "version": "9.16.4",
+  "message": "Dashboard phân tích SUT tích hợp đúng khu vực Quản trị trong HTML tổng; chuyển tab Dashboard / Danh sách mẫu đo / Báo cáo ATM; mở Dashboard sau khi Admin GET đầy đủ; dùng dữ liệu SharePoint, giữ màn đo và Rule Excel."
 }
