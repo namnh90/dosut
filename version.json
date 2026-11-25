@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.16.4",
-  "message": "Dashboard phân tích SUT tích hợp đúng khu vực Quản trị trong HTML tổng; chuyển tab Dashboard / Danh sách mẫu đo / Báo cáo ATM; mở Dashboard sau khi Admin GET đầy đủ; dùng dữ liệu SharePoint, giữ màn đo và Rule Excel."
+  "version": "9.16.7",
+  "message": "Bổ sung Số ATM tiếp quỹ cho bước 5.5, 12.1, 12.2; nhấn mạnh Số giao dịch Tra soát 2.1; bubble cảnh báo pending; hiệu ứng Mở phiên/Bổ sung TT; xuất Admin lọc từ-đến ngày, user BTK, user đơn vị. Giữ nguyên SUT di chuyển ATM32/ATM33 chia mặc định 1."
 }
