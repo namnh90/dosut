@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.16.7",
-  "message": "Bổ sung Số ATM tiếp quỹ cho bước 5.5, 12.1, 12.2; nhấn mạnh Số giao dịch Tra soát 2.1; bubble cảnh báo pending; hiệu ứng Mở phiên/Bổ sung TT; xuất Admin lọc từ-đến ngày, user BTK, user đơn vị. Giữ nguyên SUT di chuyển ATM32/ATM33 chia mặc định 1."
+  "version": "9.16.10",
+  "message": "Công cụ Lat/Long chỉ xuất hiện với user BTK sau khi nhập mật khẩu GPS hợp lệ; không lưu mật khẩu; khóa lại khi đổi username hoặc F5. Không thay đổi quy trình đo hoặc backend."
 }
