@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.16.18",
-  "message": "Dashboard xuất bảng SUT TB/MAX theo Quy trình, Mã bước, HCM/HN/Hub và user BTK/Đơn vị; STOP cảnh báo chi tiết trường bắt buộc với VẪN LƯU hoặc BỔ SUNG THÔNG TIN giữ RUNNING; giữ nguyên GPS ATM/CN-PGD và backend."
+  "version": "9.16.20",
+  "message": "Sửa bảng tổng hợp và Excel theo Đơn vị / Nhóm user / Quy trình / Mã bước: SUT từng mẫu = (Tổng thời gian thực hiện - TOÀN BỘ HOLD) / SL. SUT TB là trung bình các SUT mẫu hợp lệ, SUT MAX là cao nhất. Thêm sheet chi tiết đối soát; giữ các chức năng khác."
 }
