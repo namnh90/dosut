@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.16.14",
-  "message": "Dashboard Đo lại 15%: bổ sung bảng thống kê BTK theo đơn vị/quy trình/JD/mã bước (trung bình, MAX, ngưỡng 115% và số mẫu vượt cho cả hai). Có dropdown chọn chuẩn TB/MAX để tính GAP 15% trên Dashboard và Excel Dashboard. Giữ nguyên quy tắc Báo cáo ATM riêng, dữ liệu SharePoint và GPS LOCATION."
+  "version": "9.16.15",
+  "message": "Fix HTTP LOCATION: thêm syncEpoch cấp root và data.SyncEpoch đúng SUT_RESET_20261122_01 để qua cổng GET hoặc syncEpoch của Flow. Giữ action LOCATION, cập nhật ATM-LOCATION; không tạo RunID giả, không thay các luồng SUT."
 }
