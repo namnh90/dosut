@@ -1,5 +1,5 @@
 {
   "app": "SUT_UNIFIED",
-  "version": "9.16.15",
-  "message": "Fix HTTP LOCATION: thêm syncEpoch cấp root và data.SyncEpoch đúng SUT_RESET_20261122_01 để qua cổng GET hoặc syncEpoch của Flow. Giữ action LOCATION, cập nhật ATM-LOCATION; không tạo RunID giả, không thay các luồng SUT."
+  "version": "9.16.16",
+  "message": "Sắp xếp dropdown tìm kiếm ATMID/ADDRESS theo số ATMID tăng dần; dòng Các ATM được chọn và danh sách xác nhận cũng tăng dần. Giữ mã 8 ký tự có số 0 đầu, multi-select, mật khẩu BTK, action LOCATION và syncEpoch; không thay đổi backend SUT."
 }
